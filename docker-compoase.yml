@@ -1,0 +1,45 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.5.1"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      #- "--api.insecure=true"
+#      - --api=true
+#      - --api.dashboard=true
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=cloudflare"
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=<example@email.com>"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    environment:
+      - "CF_API_EMAIL=<example@email.com>"
+      - "CF_API_KEY=<APIKEY>"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  gunbot:
+    image: bot
+    container_name: "gunbot-node"
+    restart: always
+    volumes:
+      - /home/<USERNAME>/gunthy_linux:/gunbot
+    ports:
+      - 5000:5000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gunbot.rule=Host(`example.com`)"
+      - "traefik.http.routers.gunbot.entrypoints=websecure"
+      - "traefik.http.routers.gunbot.tls.certresolver=myresolver"
